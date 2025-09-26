@@ -3,10 +3,10 @@ pipeline {
     tools {
       jdk 'Java17'
       maven 'Maven3'
-    }
+  }
   environment {
     APP_NAME = "register-app-pipeline"
-    RELEASE = "2.0.0"
+    RELEASE = "1.0.0"
     DOCKER_USER = "pooh1"
     DOCKER_PASS = "dockerhub"
     IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
@@ -17,7 +17,7 @@ pipeline {
     stage("Cleanup Workspace") {
         steps {
           cleanWs()
-        }
+          }
     }
     
     stage("Checkout from SCM") {
@@ -55,14 +55,9 @@ pipeline {
           }
         }
      }
-
      stage("Build and Push Docker Image") {
       steps {
          script {
-           // ---- minimal fix: copy WAR into build context for Dockerfile's COPY ./*.war ----
-           sh 'ls -l target || true'
-           sh 'cp target/*.war .'
-
            docker.withRegistry('',DOCKER_PASS) {
               docker_image = docker.build "${IMAGE_NAME}"
            }
