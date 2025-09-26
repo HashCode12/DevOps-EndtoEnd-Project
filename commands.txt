@@ -1,7 +1,57 @@
 Projects Commands
 
+Jenkins-Master commands
+----------------------------------------------------------------------------
+
+# change hostname of machine
+sudo vim /etc/hostname
+sudo init 6
+
 # update and upgrade
 sudo apt update && sudo apt upgrade -y
+
+# Install Java 17
+sudo apt install openjdk-17-jre -y
+
+# install jenkins
+
+sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc]" \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt update
+sudo apt install jenkins
+
+sudo systemctl enable jenkins && sudo systemctl start jenkins
+
+# uncomment things in the ssh config file
+sudo vim /etc/ssh/sshd_config
+
+-- uncomment PubKeyAuthentication and AuthorizedKeysFile
+sudo service ssh reload
+
+# generate ssh key
+ssh-keygen -t ed25519
+
+cd .ssh/
+note : id_ed25519 - is private key, id_ed25519.pub - is public
+
+
+
+
+----------------------------------------------------------------------------
+
+
+Jenkins-Agent commands - where builds will happen
+----------------------------------------------------------------------------
+
+# update and upgrade
+sudo apt update && sudo apt upgrade -y
+
+# change hostname of machine
+sudo vim /etc/hostname
+sudo init 6
 
 # Install Java
 sudo apt install openjdk-17-jre -y
@@ -11,6 +61,15 @@ sudo apt install docker.io -y
 
 # Docker full rights to user
 sudo usermod -aG docker $USER
-
-# Reboot
 sudo init 6
+
+# uncomment things in the ssh config file
+sudo vim /etc/ssh/sshd_config
+
+-- uncomment PubKeyAuthentication and AuthorizedKeysFile
+sudo service ssh reload
+
+
+----------------------------------------------------------------------------
+
+
