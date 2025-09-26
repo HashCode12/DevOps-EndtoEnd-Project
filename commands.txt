@@ -226,13 +226,16 @@ sudo tail -f /opt/sonarqube/logs/sonar.log
 
 -- to access copy public instance ip address and type is browser with http://<ip-address>:9000
 
+----------------------------------------------------------------------------
 
 
+----------------------------------------------------------------------------
 
 
+# expose argocd to load balancer
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
 
-
-
+kubectl get secret argocd-initial-admin-secret -n argocd -o yaml
 
 
 
