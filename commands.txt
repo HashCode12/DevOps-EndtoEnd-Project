@@ -1,0 +1,16 @@
+Projects Commands
+
+# update and upgrade
+sudo apt update && sudo apt upgrade -y
+
+# Install Java
+sudo apt install openjdk-17-jre -y
+
+# Install Docker
+sudo apt install docker.io -y
+
+# Docker full rights to user
+sudo usermod -aG docker $USER
+
+# Reboot
+sudo init 6
