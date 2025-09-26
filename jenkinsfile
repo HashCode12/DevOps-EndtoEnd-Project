@@ -107,7 +107,8 @@ pipeline {
               -X POST "$JENKINS_URL/job/$JOB_NAME_CD/buildWithParameters" \
               --data-urlencode "IMAGE_TAG=${IMAGE_TAG}"
           '''
+          }       
         }
-     }
-   }
+      }
+    }
 }
