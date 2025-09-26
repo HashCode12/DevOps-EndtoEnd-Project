@@ -55,6 +55,23 @@ pipeline {
           }
         }
      }
+
+     stage('Setup Docker Buildx') {
+      steps {
+        sh '''
+          set -e
+          if ! docker buildx version >/dev/null 2>&1; then
+            mkdir -p ~/.docker/cli-plugins
+            curl -sSL -o ~/.docker/cli-plugins/docker-buildx \
+              https://github.com/docker/buildx/releases/download/v0.14.1/buildx-v0.14.1.linux-amd64
+            chmod +x ~/.docker/cli-plugins/docker-buildx
+          fi
+          docker buildx create --name jxbuilder --use >/dev/null 2>&1 || docker buildx use jxbuilder
+          docker buildx inspect --bootstrap
+        '''
+      }
+    }
+
      stage("Build and Push Docker Image") {
       steps {
          script {
