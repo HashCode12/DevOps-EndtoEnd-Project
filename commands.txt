@@ -36,6 +36,9 @@ ssh-keygen -t ed25519
 
 cd .ssh/
 note : id_ed25519 - is private key, id_ed25519.pub - is public
+copy only the contents of the public file not the private file.
+
+
 
 
 
@@ -69,7 +72,181 @@ sudo vim /etc/ssh/sshd_config
 -- uncomment PubKeyAuthentication and AuthorizedKeysFile
 sudo service ssh reload
 
+# paste public key in ssh - retrived by jenkins-master
+cd .ssh/
+paste content in the authorized_keys file
+
 
 ----------------------------------------------------------------------------
+
+open jenkins by copying public IP of instance jenkins-master
+
+# get jenkins password - run in jenkins-master
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+
+
+1. install jenkins suggested plugins
+2. setup jenkins user follow the word file in the repo
+
+
+
+SonarQube Instance commands
+----------------------------------------------------------------------------
+
+# update and upgrade
+sudo apt update && sudo apt upgrade -y
+
+# run postgresql command
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+
+# downloads the official PostgreSQL GPG key and saves it to your system’s trusted keys and install postgresql
+wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/pgdg.asc >/dev/null
+
+sudo apt update
+sudo apt-get -y install postgresql postgresql-contrib
+sudo systemctl enable postgresql
+
+# set up postgresql password
+sudo passwd postgres
+
+# to access the database
+su - postgres
+
+
+PostgreSQL Commands - inside the SonarQube Instance
+----------------------------------------------------------------------------
+
+# create user
+createuser sonar
+
+psql
+
+# alter user password
+ALTER USER sonar WITH ENCRYPTED password 'sonar';
+
+# create database
+CREATE DATABASE sonarqube OWNER sonar;
+
+# give all permissions to the sonar user
+grant all privileges on DATABASE sonarqube to sonar;
+exit
+
+
+
+SonarQube Instance commands - Continuation
+----------------------------------------------------------------------------
+
+# get adoptium repo
+sudo bash
+wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc
+
+echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print $2}' /etc/os-release) main" | sudo tee /etc/apt/sources.list.d/adoptium.list
+
+# install java jdk 17 temurin
+apt install temurin-17-jdk -y
+update-alternatives --config java
+exit
+
+
+# Linux Kernel Updates
+
+    sudo vim /etc/security/limits.conf
+
+    -- at the end of the file do the following chnages
+
+    sonarqube       -       nofile  65536
+    sonarqube       -       nproc   4096
+
+  ------------------------------------------------------
+
+    sudo vim /etc/sysctl.conf
+
+    -- increase memory map write at the end of file
+
+    vm.max_map_count = 262144
+
+  ------------------------------------------------------
+
+    # reboot
+    sudo init 6
+
+
+# SonarQube Installations
+sudo apt install zip unzip -y
+sudo wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-9.9.0.65466.zip
+sudo unzip sonarqube-9.9.0.65466.zip -d /opt
+sudo mv /opt/sonarqube-9.9.0.65466 /opt/sonarqube
+
+
+# Make user and group
+sudo groupadd sonar
+sudo useradd -c "user to run SonarQube" -d /opt/sonarqube -g sonar sonar
+sudo chown sonar:sonar /opt/sonarqube -R
+
+# Update SonarQube properties
+sudo vim /opt/sonarqube/conf/sonar.properties
+
+-- in file uncomment sonar.jdbc username and password put your own username and password
+also uncomment sonar.jdbc.url in postgres section
+
+sonar.jdbc.url=jdbc:postgresql://localhost:5432/sonarqube
+
+
+# service for SonarQube
+sudo vim /etc/systemd/system/sonar.service
+
+-- write this on the service file
+
+[Unit]
+Description=SonarQube service
+After=syslog.target network.target
+
+[Service]
+Type=forking
+
+ExecStart=/opt/sonarqube/bin/linux-x86-64/sonar.sh start
+ExecStop=/opt/sonarqube/bin/linux-x86-64/sonar.sh stop
+
+User=sonar
+Group=sonar
+Restart=always
+
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
+
+# start sonarqube and enable
+sudo systemctl start sonar
+sudo systemctl enable sonar
+
+# watch log file and monitor
+sudo tail -f /opt/sonarqube/logs/sonar.log
+
+-- to access copy public instance ip address and type is browser with http://<ip-address>:9000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
