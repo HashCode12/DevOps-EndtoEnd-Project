@@ -1,117 +1,74 @@
 pipeline {
-  agent { label 'jenkins-agent' }
-
-  tools {
-    jdk 'Java17'
-    maven 'Maven3'
+    agent { label 'jenkins-agent'}
+    tools {
+      jdk 'Java17'
+      maven 'Maven3'
   }
-
   environment {
-    APP_NAME   = "register-app-pipeline"
-    RELEASE    = "2.0.0"
+    APP_NAME = "register-app-pipeline"
+    RELEASE = "1.0.0"
     DOCKER_USER = "pooh1"
     DOCKER_PASS = "dockerhub"
-    IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}"
-    IMAGE_TAG  = "${RELEASE}-${BUILD_NUMBER}"
+    IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
+    IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
   }
 
   stages {
-    stage('Cleanup Workspace') {
-      steps { cleanWs() }
-    }
-
-    stage('Checkout from SCM') {
-      steps {
-        git branch: 'main',
-            credentialsId: 'github',
-            url: 'https://github.com/HashCode12/DevOps-EndtoEnd-Project'
-      }
-    }
-
-    stage('Build Application') {
-      steps { sh 'mvn clean package' }
-    }
-
-    stage('Test Application') {
-      steps { sh 'mvn test' }
-    }
-
-    stage('SonarQube Analysis') {
-      steps {
-        script {
-          withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') {
-            sh 'mvn sonar:sonar'
+    stage("Cleanup Workspace") {
+        steps {
+          cleanWs()
           }
+    }
+    
+    stage("Checkout from SCM") {
+      steps {
+          git branch: 'main' , credentialsId: 'github' , url: 'https://github.com/HashCode12/DevOps-EndtoEnd-Project' 
         }
-      }
     }
 
-    stage('Quality Gate') {
-      steps {
-        script {
-          waitForQualityGate abortPipeline: false, credentialsId: 'jenkins-sonarqube-token'
+    stage("Build Application") {
+        steps {
+          sh "mvn clean package"
         }
-      }
     }
 
-    stage('Setup Docker Buildx') {
-      steps {
-        sh '''
-          set -e
-          if ! docker buildx version >/dev/null 2>&1; then
-            mkdir -p ~/.docker/cli-plugins
-            curl -sSL -o ~/.docker/cli-plugins/docker-buildx \
-              https://github.com/docker/buildx/releases/download/v0.14.1/buildx-v0.14.1.linux-amd64
-            chmod +x ~/.docker/cli-plugins/docker-buildx
-          fi
-          docker buildx create --name jxbuilder --use >/dev/null 2>&1 || docker buildx use jxbuilder
-          docker buildx inspect --bootstrap
-        '''
-      }
-    }
+    stage("Test Application"){
+        steps {
+          sh "mvn test"
+        }
+     }
 
-    stage('Build and Push Docker Image') {
-      steps {
-        script {
-          sh 'echo "Artifacts:" && ls -l target || true'
-
-          def hasJar = sh(script: 'ls target/*.jar >/dev/null 2>&1 && echo yes || echo no', returnStdout: true).trim()
-          def hasWar = sh(script: 'ls target/*.war >/dev/null 2>&1 && echo yes || echo no', returnStdout: true).trim()
-
-          if (hasJar == 'yes') {
-            sh '''
-              JAR=$(ls target/*.jar | head -n1)
-              cp "$JAR" app.jar
-              cat > Dockerfile.jar <<'EOF'
-FROM eclipse-temurin:17-jre
-WORKDIR /app
-COPY app.jar /app/app.jar
-EXPOSE 8080
-ENTRYPOINT ["java","-jar","/app/app.jar"]
-EOF
-            '''
-            withEnv(['DOCKER_BUILDKIT=1']) {
-              docker.withRegistry('', DOCKER_PASS) {
-                docker_image = docker.build("${IMAGE_NAME}", "-f Dockerfile.jar .")
-              }
+    stage("SonarQube Analysis") {
+        steps {
+          script {
+            withSonarQubeEnv(credentialsId: 'jenkins-sonarqube-token') {
+              sh "mvn sonar:sonar"
             }
-          } else if (hasWar == 'yes') {
-            sh 'cp target/*.war .'
-            withEnv(['DOCKER_BUILDKIT=1']) {
-              docker.withRegistry('', DOCKER_PASS) {
-                docker_image = docker.build("${IMAGE_NAME}")
-              }
-            }
-          } else {
-            error('No JAR or WAR found in target/')
-          }
-
-          docker.withRegistry('', DOCKER_PASS) {
-            docker_image.push("${IMAGE_TAG}")
-            docker_image.push('latest')
           }
         }
-      }
-    }
-  }
+     }
+
+     stage("Quality Gate") {
+        steps {
+          script {
+            waitForQualityGate abortPipeline: false, credentialsId: 'jenkins-sonarqube-token'
+          }
+        }
+     }
+
+     stage("Build and Push Docker Image") {
+      steps {
+         script {
+           docker.withRegistry('',DOCKER_PASS) {
+              docker_image = docker.build "${IMAGE_NAME}"
+           }
+
+           docker.withRegistry('',DOCKER_PASS) {
+              docker_image.push("${IMAGE_TAG}")
+              docker_image.push('latest')
+           }
+         }
+       }
+     }
+   }
 }
