@@ -11,10 +11,6 @@ pipeline {
     DOCKER_PASS = "dockerhub"
     IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
     IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
-    JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
-    JENKINS_URL   = 'http://ec2-3-29-98-23.me-central-1.compute.amazonaws.com:8080'
-    JOB_NAME_CD   = 'gitops-register-app-cd'     // downstream job
-    JENKINS_USER  = 'clouduser'                  // the Jenkins user that owns the API token
   }
 
   stages {
