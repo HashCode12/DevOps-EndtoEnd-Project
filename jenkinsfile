@@ -89,26 +89,16 @@ pipeline {
           script {
             sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG}"
             sh "docker rmi ${IMAGE_NAME}:latest"
-          }
+                }
+            }
         }
-     }
-
-     stage ("Trigger CI/CD Pipeline"){
-        steps {
-                  withCredentials([string(credentialsId: 'JENKINS_API_TOKEN', variable: 'API_TOKEN')]) {
-          sh '''
-            set -e
-            # Get CSRF crumb
-            CRUMB=$(curl -s -k -u "$JENKINS_USER:$API_TOKEN" \
-              "$JENKINS_URL/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)")
-
-            # Trigger the downstream job with parameters (IMAGE_TAG must exist in env)
-            curl -v -k -u "$JENKINS_USER:$API_TOKEN" -H "$CRUMB" \
-              -X POST "$JENKINS_URL/job/$JOB_NAME_CD/buildWithParameters" \
-              --data-urlencode "IMAGE_TAG=${IMAGE_TAG}"
-          '''
-          }       
-        }
+      stage () {
+         steps {
+            script {
+                sh "curl -v -k --user clouduser:${JENKINS_API_TOKEN} -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' --data 'IMAGE_TAG=${IMAGE_TAG}' 'ec2-3-29-98-23.me-central-1.compute.amazonaws.com:8080/job/gitops-register-app-cd/buildWithParameters?token=gitops-token'"
+            }
+         }
       }
+
     }
 }
